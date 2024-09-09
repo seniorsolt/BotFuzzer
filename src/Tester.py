@@ -111,7 +111,8 @@ class Tester(Client):
                     return
                 self.tester_logger.debug(f"Tree AFTER restoring: {self.exporter.export_to_json()}")
 
-            new_state = await target_node.actions_out[i]()[-1]
+            result_of_action = await target_node.actions_out[i]()
+            new_state = result_of_action[-1]
             self.tester_logger.debug(f"Current tree: {self.exporter.export_to_json()}")
             if new_state.status != 'Timeout' and new_state != target_node:
                 self.current_state = new_state
@@ -136,12 +137,15 @@ class Tester(Client):
                 continue
 
             if i == 0:
-                new_state = await target_state.path[i + 1].action_in(detached=True)
+                self.current_state = target_state.path[0]
+                result_of_action = await target_state.path[i + 1].action_in(detached=True)
+                new_state = result_of_action[-1]
             else:
                 index_of_action_to_call = self.current_state.actions_out.index(target_state.path[i + 1].action_in)
-                new_state = await self.current_state.actions_out[index_of_action_to_call](detached=True)
+                result_of_action = await self.current_state.actions_out[index_of_action_to_call](detached=True)
+                new_state = result_of_action[-1]
 
-            if new_state != target_state.path[i + 1]:
+            if new_state != target_state.path[i + len(result_of_action)]:
                 message = f"Fail to restore state: \n({target_state.path[i + 1]})\ninstead got state: \n({new_state})"
                 self.tester_logger.debug(message)
                 new_state.parent = target_state.path[i]
@@ -149,11 +153,11 @@ class Tester(Client):
                 new_state.actions_out = []
                 return False
 
-            await self._update_actions_out(target_state.path[i+1], new_state)
+            await self._update_actions_out(target_state.path[i+len(result_of_action)], new_state)
 
-            target_state.path[i + 1].action_in = new_state.action_in
-            self.total -= 1
-            self.current_state = target_state.path[i + 1]
+            target_state.path[i + len(result_of_action)].action_in = new_state.action_in
+            self.total -= len(result_of_action)
+            self.current_state = target_state.path[i + len(result_of_action)]
         return True
 
     async def _update_actions_out(self, target_state, new_state):

@@ -73,7 +73,7 @@ class BaseTelegramAction:
             new_states.append(new_state)
 
         self.client.current_action_update_buffer = []
-        return new_states
+        return new_states[1:]
 
     def _update_last_minute_requests(self):
         now = time.time()
