@@ -1,4 +1,46 @@
-.venv
-src/.env
 *.session
 .idea
+__pycache__/
+**/__pycache__
+TODO.py
+src/архив/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+/test
+.Python
+abuild/
+adevelop-eggs/
+adist/
+adownloads/
+aeggs/
+a.eggs/
+alib/
+alib64/
+aparts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
+__pypackages__/
+
+# Environments
+src/.env
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
