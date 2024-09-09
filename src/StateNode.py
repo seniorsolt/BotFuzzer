@@ -20,7 +20,7 @@ class StateNode(NodeMixin):
     async def create(cls, client, parent=None, action_in=None, result=None):
         state_id = client.total + 1
         text = getattr(result, 'text', '') or getattr(result, 'caption', '') if result != 'Timeout' else ''
-        media = await cls._extract_and_proccess_media(client, result) if parent else None
+        media = await cls._extract_and_proccess_media(client, result) if (parent and result != 'Timeout') else None
         actions_out = await cls._explore_and_create_actions(client, result, text, action_in, parent)
         status = 'ok' if result != 'Timeout' else 'Timeout'
         client.total += 1

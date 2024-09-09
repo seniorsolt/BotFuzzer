@@ -35,7 +35,7 @@ BASE_ROW = """
 """
 
 BASE_CELL = """
-\t\t\t\t<mxCell id="{}" value="{}" style="shape=partialRectangle;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;strokeColor=inherit;overflow=hidden;fillColor=none;fontSize=16;spacing=0;spacingLeft=5;spacingTop=1" parent="{}" vertex="1">
+\t\t\t\t<mxCell id="{}" value="{}" style="shape=partialRectangle;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;strokeColor=inherit;overflow=hidden;fillColor=none;fontSize=16;spacing=0;spacingLeft=5;spacingRight=5;spacingTop=1;spacingBottom=2" parent="{}" vertex="1">
 \t\t\t\t  <mxGeometry x="{}" width="{}" height="{}" as="geometry" />
 \t\t\t\t</mxCell>
 """
