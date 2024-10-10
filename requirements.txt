@@ -5,4 +5,4 @@ pillow==10.4.0
 openai==1.43.0
 pydantic==2.8.2
 #fork of pyrogram with last updates
-git+https://github.com/KurimuzonAkuma/pyrogram.git@f7236fd#egg=Pyrogram
+git+https://github.com/KurimuzonAkuma/pyrogram.git@dev#egg=Pyrogram
