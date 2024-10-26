@@ -3,7 +3,7 @@
 __pycache__/
 **/__pycache__
 TODO.py
-src/архив/
+BotFuzzer/архив/
 *.py[cod]
 *$py.class
 
@@ -38,7 +38,7 @@ pip-delete-this-directory.txt
 __pypackages__/
 
 # Environments
-src/.env
+BotFuzzer/.env
 .env
 .venv
 env/
@@ -48,7 +48,7 @@ env.bak/
 venv.bak/
 
 
-src/downloads/
+BotFuzzer/downloads/
 downloads/
 .vscode/launch.json
 .aider*
