@@ -56,8 +56,12 @@ class Tester(Client):
         self.tester_logger = self._setup_logger()
 
         self._exporter = None
-        self.openai_client = AsyncOpenAI(api_key=os.getenv('OPENAI_API_KEY'),
-                                         base_url=os.getenv('OPENAI_BASE_URL'))
+
+        if os.getenv('OPENAI_API_KEY'):
+            self.openai_client = AsyncOpenAI(api_key=os.getenv('OPENAI_API_KEY'),
+                                             base_url=os.getenv('OPENAI_BASE_URL'))
+        else:
+            self.openai_client = None
 
     def _setup_logger(self) -> logging.Logger:
         logger = logging.getLogger('TesterLogger')

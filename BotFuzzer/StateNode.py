@@ -31,19 +31,23 @@ class StateNode(NodeMixin):
     async def _explore_and_create_actions(cls, client, result, text, action_in, parent, restored):
         actions = []
         if result is None:
-            action = await ActionFactory.create_action(kind='send_text_message',
-                                                       client=client,
-                                                       text='/start')
+            action = await ActionFactory.create_action(
+                kind='send_text_message',
+                client=client,
+                text='/start'
+            )
             actions.append(action)
             return actions
 
-        if text and not restored:
-            action = await ActionFactory.create_action(kind='send_ai_text_message',
-                                                       client=client,
-                                                       parent=parent,
-                                                       action_in=action_in,
-                                                       bot_message=text,
-                                                       actions=actions)
+        if text and not restored and client.openai_client:
+            action = await ActionFactory.create_action(
+                kind='send_ai_text_message',
+                client=client,
+                parent=parent,
+                action_in=action_in,
+                bot_message=text,
+                actions=actions
+            )
             if action:
                 actions.append(action)
         if result == 'Timeout':
