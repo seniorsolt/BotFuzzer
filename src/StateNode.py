@@ -1,7 +1,6 @@
-import copy
-from functools import reduce
+import json
 from anytree import NodeMixin
-from src.actions import ActionFactory
+from actions import ActionFactory, BaseTelegramAction
 
 
 class StateNode(NodeMixin):
@@ -17,11 +16,11 @@ class StateNode(NodeMixin):
         self.status = status
 
     @classmethod
-    async def create(cls, client, parent=None, action_in=None, result=None):
+    async def create(cls, client, parent=None, action_in=None, result=None, restored=False):
         state_id = client.total + 1
         text = getattr(result, 'text', '') or getattr(result, 'caption', '') if result != 'Timeout' else ''
-        media = await cls._extract_and_proccess_media(client, result) if (parent and result != 'Timeout') else None
-        actions_out = await cls._explore_and_create_actions(client, result, text, action_in, parent)
+        media = await cls._extract_and_proccess_media(client, result, restored)
+        actions_out = await cls._explore_and_create_actions(client, result, text, action_in, parent, restored)
         status = 'ok' if result != 'Timeout' else 'Timeout'
         client.total += 1
 
@@ -29,7 +28,7 @@ class StateNode(NodeMixin):
                    actions_out=actions_out, status=status, media=media)
 
     @classmethod
-    async def _explore_and_create_actions(cls, client, result, text, action_in, parent):
+    async def _explore_and_create_actions(cls, client, result, text, action_in, parent, restored):
         actions = []
         if result is None:
             action = await ActionFactory.create_action(kind='send_text_message',
@@ -38,7 +37,7 @@ class StateNode(NodeMixin):
             actions.append(action)
             return actions
 
-        if text and parent:
+        if text and not restored:
             action = await ActionFactory.create_action(kind='send_ai_text_message',
                                                        client=client,
                                                        parent=parent,
@@ -66,7 +65,6 @@ class StateNode(NodeMixin):
                                                                button=button)
                     actions.append(action)
 
-
         # if result is not None:
         #     # to check if unexpected text message will break target bot
         #     action = await ActionFactory.create_action(kind='send_random_text_message',
@@ -78,7 +76,9 @@ class StateNode(NodeMixin):
         return actions
 
     @classmethod
-    async def _extract_and_proccess_media(cls, client, result):
+    async def _extract_and_proccess_media(cls, client, result, restored):
+        if result == 'Timeout' or restored:
+            return None
         try:
             filepath = await client.download_media(result)
         except ValueError as e:
@@ -91,8 +91,27 @@ class StateNode(NodeMixin):
             return False
         # elif getattr(self, 'text', None) != getattr(other, 'text', None):
         #     return False
-        elif self.action_in != other.action_in:
-            return False
+
+        # self_isolated_parent = copy.copy(self.parent)
+        # if self_isolated_parent is not None:
+        #     self_isolated_parent.parent = None
+        #
+        # other_isolated_parent = copy.copy(other.parent)
+        # if other_isolated_parent is not None:
+        #     other_isolated_parent.parent = None
+        #
+        # if self_isolated_parent != other_isolated_parent:
+        #     return False
+        # if self.action_in != other.action_in:
+        #     return False
+        #
+        # self_action_in = self.action_in if (self.action_in is not None
+        #                                     and self.action_in.kind != 'send_ai_text_message') else None
+        # other_action_in = other.action_in if (other.action_in is not None
+        #                                       and other.action_in.kind not in ('send_ai_text_message', None)) else None
+        #
+        # if self_action_in != other_action_in:
+        #     return False
 
         self_actions_out = [action for action in self.actions_out if action.kind != 'send_ai_text_message']
         other_actions_out = [action for action in other.actions_out if action.kind != 'send_ai_text_message']
@@ -105,20 +124,9 @@ class StateNode(NodeMixin):
         return True
 
     def __hash__(self):
-        return hash((
-            self.text,
-            self.action_in,
-            tuple(self.actions_out)
-        ))
+        return hash(self.state_id)
 
     def __str__(self):
-        def function(res, attr):
-            if attr[0] not in ('_NodeMixin__parent', '_NodeMixin__children'):
-                res = res + f'{attr[0]}: {attr[1]}\n'
-            return res
+        filtered_dict = {k: v for k, v in self.__dict__.items() if not k.startswith('_NodeMixin__')}
 
-        return reduce(
-            function,
-            self.__dict__.items(),
-            '\n'
-        )
+        return json.dumps(filtered_dict, indent=4, default=BaseTelegramAction.default, ensure_ascii=False)
