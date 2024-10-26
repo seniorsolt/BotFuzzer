@@ -4,10 +4,12 @@ import traceback
 
 
 async def main():
-    tester = await Tester.create(target_bot="@photo_aihero_bot",
-                                 max_depth=3,
-                                 min_time_to_wait=5,
-                                 debug=True)
+    tester = await Tester.create(
+        target_bot="@photo_aihero_bot",
+        max_depth=5,
+        min_time_to_wait=5,
+        debug=True
+    )
 
     async with tester:
         try:
