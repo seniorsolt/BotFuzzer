@@ -98,11 +98,16 @@ tester.exporter.export_to_drawio(mode='matrix')
 * export_to_json: This exports the results in JSON format.
 * export_to_drawio: Exports an XML file that can be opened in the drawio desktop app or online at https://www.drawio.com/.
 
-Example of mode='tree':
-<image>
+**Example of mode='tree':**
 
-Example of mode='matrix':
-<image>
+![image](https://github.com/user-attachments/assets/63386c3f-b260-4efb-aa93-f232fc9b5688)
+
+___
+
+**Example of mode='matrix':**
+
+![image](https://github.com/user-attachments/assets/9cc8b039-71f2-4ac1-921e-c3e07ea76ed4)
+
 
 
 ## Debug
