@@ -15,12 +15,12 @@ class Tester(Client):
     def __init__(
         self,
         target_bot: str,
-        min_time_to_wait: float,
-        max_time_to_wait: float,
+        min_time_to_wait: float = 5,
+        max_time_to_wait: float = 10,
         name: str = 'TesterBot',
         initial_actions: Union[str, List[str]] = '/start',
         reset_action: Optional[Callable] = None,
-        max_depth: int = 3,
+        max_depth: int = 5,
         max_repeats: int = 1,
         debug: bool = False,
         *args: Any,
@@ -83,17 +83,19 @@ class Tester(Client):
         return logger
 
     @classmethod
-    async def create(cls,
-                     target_bot,
-                     name='TesterBot',
-                     initial_actions='/start',
-                     reset_action=None,
-                     max_depth=3,
-                     min_time_to_wait=10,
-                     max_time_to_wait=15,
-                     debug=False,
-                     *args,
-                     **kwargs):
+    async def create(
+            cls,
+            target_bot,
+            name='TesterBot',
+            initial_actions='/start',
+            reset_action=None,
+            max_depth=3,
+            min_time_to_wait=10,
+            max_time_to_wait=15,
+            debug=False,
+            *args,
+            **kwargs
+    ):
 
         instance = cls(
             target_bot=target_bot,

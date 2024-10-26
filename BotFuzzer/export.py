@@ -347,6 +347,7 @@ class Exporter:
 
         if table.parent:
             main_str += BASE_EDGE.format(str(uuid.uuid4()), table.parent.id, table.id)
+
         return main_str
 
     def _fill_xml_with_matrix(self):
@@ -380,11 +381,14 @@ class Exporter:
                 # if table.edge:
                 #     main_str += BASE_EDGE.format(f'{table.edge.id}_{i}', f'{table.edge.source}_{i}', f'{table.edge.target}_{i}')
 
+        return main_str
+
+    def _save_xml_file(self, main_str, mode):
         export_string = BASE_PAGE.format(main_str)
         export_string = export_string.strip("\n")
         current_time = datetime.now()
         formatted_time = current_time.strftime("%Y-%m-%d_%H-%M-%S")
-        filename = f"tree_{formatted_time}.xml"
+        filename = f"tree_{mode}_{formatted_time}.xml"
         with open(filename, "w", encoding="utf-8") as f:
             f.write(export_string)
         return
@@ -412,10 +416,12 @@ class Exporter:
         if mode == 'tree':
             self._initialize_render_tree()
             self._layout_render_tree(self.render_root, BASE_START_TABLE_Y_AXIS)
-            self._fill_xml_with_tree(self.render_root)
+            main_str = self._fill_xml_with_tree(self.render_root)
+            self._save_xml_file(main_str, mode)
         elif mode == 'matrix':
             self._initialize_render_matrix()
             self._layout_render_matrix(BASE_START_TABLE_Y_AXIS)
-            self._fill_xml_with_matrix()
+            main_str = self._fill_xml_with_matrix()
+            self._save_xml_file(main_str, mode)
         else:
             raise ValueError('Unknown mode')
