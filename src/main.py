@@ -1,24 +1,24 @@
 import asyncio
-import pdb
-
-from src.Tester import Tester
+from Tester import Tester
 import traceback
 
 
 async def main():
-    tester = await Tester.create(target_bot="lanit_picnic_bot",
-                                 max_depth=5,
-                                 min_time_to_wait=6,
+    tester = await Tester.create(target_bot="@photo_aihero_bot",
+                                 max_depth=3,
+                                 min_time_to_wait=5,
                                  debug=True)
+
     async with tester:
         try:
             await tester.test(target_node=tester.root)
         except Exception as e:
             traceback.print_exc()
             print(f'ERROR: {e}')
-            pdb.post_mortem()
         finally:
-            tester.exporter.export_to_drawio()
+            tester.exporter.export_to_drawio(mode='tree')
+            tester.exporter.export_to_drawio(mode='matrix')
+            tester.exporter.export_to_json(save=True)
 
 if __name__ == "__main__":
     asyncio.run(main())
