@@ -4,7 +4,7 @@ BASE_TABLE_WIDTH = 1000
 MARGIN = 100
 BASE_CELL_SHARE = 0.2
 MAX_STR_LEN = 1000
-FONT_PATH = 'src/Helvetica.ttf'
+FONT_PATH = 'BotFuzzer/Helvetica.ttf'
 FONT_SIZE = 30
 
 BASE_PAGE = """

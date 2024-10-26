@@ -343,7 +343,7 @@ class PushInlineButtonAction(BaseTelegramAction):
                 logger.propagate = False
                 file_handler = logging.FileHandler("yaml_logs.yaml", encoding="utf-8-sig")
                 file_handler.setLevel(logging.DEBUG)
-                from src.Tester import YamlLikeFormatter
+                from BotFuzzer.Tester import YamlLikeFormatter
                 formatter = YamlLikeFormatter()
                 file_handler.setFormatter(formatter)
                 logger.addHandler(file_handler)
