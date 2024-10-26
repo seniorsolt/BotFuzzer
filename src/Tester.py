@@ -3,30 +3,38 @@ import os
 from collections import deque
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
-from pyrogram import Client, filters
-from pyrogram.handlers import MessageHandler, RawUpdateHandler
+from pyrogram import Client
+from typing import Any, Callable, Optional, List, Union
 
-from src.StateNode import StateNode
+from StateNode import StateNode
 
 load_dotenv()
 
 
 class Tester(Client):
-    def __init__(self,
-                 target_bot,
-                 min_time_to_wait,
-                 max_time_to_wait,
-                 name='TesterBot',
-                 initial_actions='/start',
-                 reset_action=None,
-                 max_depth=3,
-                 debug=False,
-                 *args,
-                 **kwargs):
+    def __init__(
+        self,
+        target_bot: str,
+        min_time_to_wait: float,
+        max_time_to_wait: float,
+        name: str = 'TesterBot',
+        initial_actions: Union[str, List[str]] = '/start',
+        reset_action: Optional[Callable] = None,
+        max_depth: int = 3,
+        max_repeats: int = 1,
+        debug: bool = False,
+        *args: Any,
+        **kwargs: Any
+    ):
+        api_id = os.getenv('TELEGRAM_API_ID')
+        api_hash = os.getenv('TELEGRAM_API_HASH')
+        if not api_id or not api_hash:
+            raise ValueError("Environment variables TELEGRAM_API_ID and TELEGRAM_API_HASH must be set.")
+
         super().__init__(
             name=name,
-            api_id=os.getenv('TELEGRAM_API_ID'),
-            api_hash=os.getenv('TELEGRAM_API_HASH'),
+            api_id=api_id,
+            api_hash=api_hash,
             *args,
             **kwargs
         )
@@ -37,6 +45,7 @@ class Tester(Client):
         self.current_state = self.root
         self.reset_action = reset_action
         self.max_depth = max_depth
+        self.max_repeats = max_repeats
         self.min_time_to_wait = min_time_to_wait
         self.max_time_to_wait = max_time_to_wait
 
@@ -44,20 +53,34 @@ class Tester(Client):
         self.current_action_update_buffer = []
 
         self.debug = debug
+        self.tester_logger = self._setup_logger()
+
         self._exporter = None
         self.openai_client = AsyncOpenAI(api_key=os.getenv('OPENAI_API_KEY'),
                                          base_url=os.getenv('OPENAI_BASE_URL'))
 
-        self.tester_logger = logging.getLogger('TesterLogger')
+    def _setup_logger(self) -> logging.Logger:
+        logger = logging.getLogger('TesterLogger')
+        logger.setLevel(logging.DEBUG if self.debug else logging.INFO)
+
+        # Console handler
         console_handler = logging.StreamHandler()
         console_handler.setLevel(logging.DEBUG if self.debug else logging.INFO)
-        self.tester_logger.addHandler(console_handler)
-        self.tester_logger.setLevel(logging.DEBUG if self.debug else logging.INFO)
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-        console_handler.setFormatter(formatter)
+        console_formatter = logging.Formatter(
+            '%(asctime)s - %(levelname)s - %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S'
+        )
+        console_handler.setFormatter(console_formatter)
+        logger.addHandler(console_handler)
 
-        if debug:
-            self.add_handler(RawUpdateHandler(self.raw_updates), group=0)
+        # File handler
+        file_handler = logging.FileHandler("yaml_logs.yaml", encoding="utf-8-sig")
+        file_handler.setLevel(logging.DEBUG if self.debug else logging.INFO)
+        file_formatter = YamlLikeFormatter()  # Ensure this formatter is imported and available
+        file_handler.setFormatter(file_formatter)
+        logger.addHandler(file_handler)
+
+        return logger
 
     @classmethod
     async def create(cls,
@@ -89,10 +112,6 @@ class Tester(Client):
         instance.current_state = instance.root
         return instance
 
-    @staticmethod
-    async def raw_updates(client, update, users, chats):
-        client.tester_logger.debug(f"Raw update: \n({update})")
-
     @property
     def exporter(self):
         # lazy loading and internal import to avoid recursive issues
@@ -103,24 +122,39 @@ class Tester(Client):
         return self._exporter
 
     async def test(self, target_node):
-        self.tester_logger.debug(f"Test state: \n({target_node})")
+        self.tester_logger.debug(f"Test state: {target_node}")
         for i in range(len(target_node.actions_out)):
             if self.current_state.state_id != target_node.state_id:
                 is_success_to_restore_state = await self.restore_state(target_node)
                 if not is_success_to_restore_state:
                     return
-                self.tester_logger.debug(f"Tree AFTER restoring: {self.exporter.export_to_json()}")
 
             result_of_action = await target_node.actions_out[i]()
+            self.tester_logger.debug(f"Result of action: {result_of_action}")
             new_state = result_of_action[-1]
             self.tester_logger.debug(f"Current tree: {self.exporter.export_to_json()}")
+
+            # Check for loops by counting occurrences of the new state in the path
+            repeat_count = target_node.path.count(new_state)
+            if repeat_count >= self.max_repeats:
+                new_state.status = 'Loop!'
+                self.current_state = new_state
+                if self.debug:
+                    duplicates = [state.state_id for state in target_node.path if state == new_state]
+                    self.tester_logger.debug(
+                        f"State {new_state} is repeated more than {self.max_repeats} times "
+                        f"in the current branch. Dropping branch. Duplicate states: {duplicates}"
+                    )
+                continue
+
+            # Update the current state and recursively test if conditions are met
             if new_state.status != 'Timeout' and new_state != target_node:
                 self.current_state = new_state
                 if new_state.actions_out and new_state.depth < self.max_depth:
                     await self.test(new_state)
 
     async def restore_state(self, target_state):
-        self.tester_logger.debug(f"Restore state: \n({target_state})")
+        self.tester_logger.debug(f"Restore state: {target_state}")
         self.tester_logger.debug(f"Tree BEFORE restoring: {self.exporter.export_to_json()}")
 
         if self.reset_action:
@@ -138,27 +172,39 @@ class Tester(Client):
 
             if i == 0:
                 self.current_state = target_state.path[0]
-                result_of_action = await target_state.path[i + 1].action_in(detached=True)
+                result_of_action = await target_state.path[i + 1].action_in(restored=True)
                 new_state = result_of_action[-1]
             else:
                 index_of_action_to_call = self.current_state.actions_out.index(target_state.path[i + 1].action_in)
-                result_of_action = await self.current_state.actions_out[index_of_action_to_call](detached=True)
+                result_of_action = await self.current_state.actions_out[index_of_action_to_call](restored=True)
                 new_state = result_of_action[-1]
 
+            self.tester_logger.debug(f'New state: {new_state}')
+            self.tester_logger.debug(f"Target_state: id {target_state.state_id}")
             if new_state != target_state.path[i + len(result_of_action)]:
-                message = f"Fail to restore state: \n({target_state.path[i + 1]})\ninstead got state: \n({new_state})"
+                message = f"Fail to restore state: {target_state.path[i + 1]} instead got state: {new_state}"
                 self.tester_logger.debug(message)
-                new_state.parent = target_state.path[i]
                 new_state.text = message
                 new_state.actions_out = []
                 return False
 
-            await self._update_actions_out(target_state.path[i+len(result_of_action)], new_state)
-
+            await self._update_actions_out(target_state.path[i + len(result_of_action)], new_state)
             target_state.path[i + len(result_of_action)].action_in = new_state.action_in
+
             self.total -= len(result_of_action)
+            for state in result_of_action:
+                state.parent = None
             self.current_state = target_state.path[i + len(result_of_action)]
+            self.tester_logger.debug(f"Current state: id {self.current_state.state_id}")
+
+        self.tester_logger.debug(f"Tree AFTER restoring: {self.exporter.export_to_json()}")
         return True
+
+    # def _handle_restore_failure(self, message, new_state=None):
+    #     self.tester_logger.debug(message)
+    #     if new_state:
+    #         new_state.text = message
+    #         new_state.actions_out = []
 
     async def _update_actions_out(self, target_state, new_state):
         # we need to update actions_out because new messages have another ids, it's important for inline buttons,
@@ -179,3 +225,13 @@ class Tester(Client):
                                 f'{target_action.kind} and {new_action.kind}')
         for k, action in temporary_actions.items():
             target_state.actions_out.insert(k, action)
+
+
+class YamlLikeFormatter(logging.Formatter):
+    def format(self, record):
+        super().format(record)
+        message = f'{self.formatTime(record, "%Y-%m-%d %H:%M:%S")} - {record.levelname}'
+        record_message = record.getMessage()
+
+        yaml_like_log = f'{message}: {record_message}'
+        return yaml_like_log
