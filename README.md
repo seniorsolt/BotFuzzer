@@ -148,6 +148,11 @@ Pass ```debug = True``` in Tester.create() to write and save logs in yaml format
 You can open the yaml_logs.yaml file in any text editor.
 However, I use Sublime Text because it handles large logs efficiently, and you can fold all levels at once using hotkeys (search command: "fold_all").
 
+## AI text-based actions
+
+To use this feature, add `OPENAI_API_KEY` in the `.env` file as mentioned above. 
+You can also use a local model if its backend provides an OpenAI-compatible API. Simply set `OPENAI_BASE_URL` in the `.env` file.
+
 ## Contributing
 
 Contributions are welcome in any form
