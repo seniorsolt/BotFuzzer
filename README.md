@@ -7,9 +7,7 @@ The BotFuzzer algorithm is based on DFS: starting from the base state, which cor
 
 The result of the work is a tree of states and actions. Currently, export is supported in JSON and draw.io XML formats.
 
-![image](https://github.com/user-attachments/assets/f6b1b0dc-a692-4ff2-ba5b-79f591b7b722)
-
-
+![draw io_cGe54zO4gY](https://github.com/user-attachments/assets/59138da1-573c-4fa7-aa59-38452e8dd985)
 
 ## Installation
 
