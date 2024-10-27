@@ -176,9 +176,10 @@ class SendTextMessageAction(BaseTelegramAction):
             except FloodWait as fw:
                 self.client.tester_logger.debug(
                     f'{fw}\nFloodRate:{len(self.client.last_minute_requests)} api calls per last minute')
-                self.client.tester_logger.debug(f'sleep for {fw.value} seconds')
+                self.client.tester_logger.info(f'Telegram says, a wait for {fw.value} seconds is required. Sleeping ...')
                 self.client.exporter.export_to_drawio()
                 await asyncio.sleep(fw.value)
+                await self.perform(restored)
 
             await self._ensure_minimum_sleep_time(start_time)
 
@@ -303,11 +304,16 @@ class PushInlineButtonAction(BaseTelegramAction):
 
         async with self.manage_handler(RawUpdateHandler(self.handle_response)):
             try:
-                if self.callback_data:
+                if self.callback_data and self.url is None:
                     await self.request_callback_answer()
+                elif self.url is not None:
+                    text = self.url
+                    self.action_result = pyrogram.types.Message(id=0, text=text)
+                    self.client.current_action_update_buffer.append(self.action_result)
                 else:
                     text = '\n'.join(self._collect_attrs())
                     self.action_result = pyrogram.types.Message(id=0, text=text)
+                    self.client.current_action_update_buffer.append(self.action_result)
 
             except asyncio.TimeoutError:
                 self.client.tester_logger.debug(f"Timeout while performing action: {self}")
@@ -316,9 +322,10 @@ class PushInlineButtonAction(BaseTelegramAction):
             except FloodWait as fw:
                 self.client.tester_logger.debug(
                     f'{fw}\nFloodRate:{len(self.client.last_minute_requests)} api calls per last minute')
-                self.client.tester_logger.debug(f'sleep for {fw.value} seconds')
+                self.client.tester_logger.info(f'Telegram says, a wait for {fw.value} seconds is required. Sleeping ...')
                 self.client.exporter.export_to_drawio()
                 await asyncio.sleep(fw.value)
+                await self.perform(restored)
 
             await self._ensure_minimum_sleep_time(start_time)
 
