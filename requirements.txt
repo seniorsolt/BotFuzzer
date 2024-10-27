@@ -1,8 +1,9 @@
-python-dotenv==1.0.1
-anytree==2.12.1
-emoji==2.12.1
-pillow==10.4.0
-openai==1.43.0
-pydantic==2.8.2
+python-dotenv
+anytree
+emoji
+pillow
+openai
+pydantic
 #fork of pyrogram with last updates
 git+https://github.com/KurimuzonAkuma/pyrogram.git@dev#egg=Pyrogram
+moviepy
