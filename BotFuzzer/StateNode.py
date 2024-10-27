@@ -1,6 +1,10 @@
 import json
+import os
+
+from PIL import Image, UnidentifiedImageError
 from anytree import NodeMixin
 from actions import ActionFactory, BaseTelegramAction
+from moviepy.editor import VideoFileClip
 
 
 class StateNode(NodeMixin):
@@ -20,7 +24,7 @@ class StateNode(NodeMixin):
         state_id = client.total + 1
         text = getattr(result, 'text', '') or getattr(result, 'caption', '') if result != 'Timeout' else ''
         media = await cls._extract_and_proccess_media(client, result, restored)
-        actions_out = await cls._explore_and_create_actions(client, result, text, action_in, parent, restored)
+        actions_out = await cls._explore_and_create_actions(state_id, client, result, text, action_in, parent, restored)
         status = 'ok' if result != 'Timeout' else 'Timeout'
         client.total += 1
 
@@ -28,9 +32,9 @@ class StateNode(NodeMixin):
                    actions_out=actions_out, status=status, media=media)
 
     @classmethod
-    async def _explore_and_create_actions(cls, client, result, text, action_in, parent, restored):
+    async def _explore_and_create_actions(cls, state_id, client, result, text, action_in, parent, restored):
         actions = []
-        if result is None:
+        if state_id == 0:
             action = await ActionFactory.create_action(
                 kind='send_text_message',
                 client=client,
@@ -56,17 +60,21 @@ class StateNode(NodeMixin):
         if hasattr(result.reply_markup, 'keyboard'):
             for row in result.reply_markup.keyboard:
                 for button in row:
-                    action = await ActionFactory.create_action(kind='send_text_message',
-                                                               client=client,
-                                                               text=button)
+                    action = await ActionFactory.create_action(
+                        kind='send_text_message',
+                        client=client,
+                        text=button
+                    )
                     actions.append(action)
         elif hasattr(result.reply_markup, 'inline_keyboard'):
             for row in result.reply_markup.inline_keyboard:
                 for button in row:
-                    action = await ActionFactory.create_action(kind='push_inline_button',
-                                                               client=client,
-                                                               mes_id=result.id,
-                                                               button=button)
+                    action = await ActionFactory.create_action(
+                        kind='push_inline_button',
+                        client=client,
+                        mes_id=result.id,
+                        button=button
+                    )
                     actions.append(action)
 
         # if result is not None:
@@ -85,10 +93,44 @@ class StateNode(NodeMixin):
             return None
         try:
             filepath = await client.download_media(result)
+            if filepath.endswith(('mp4', 'avi', 'mov', 'MOV', 'webp')):
+                await cls._convert_video_to_webp(filepath)
         except ValueError as e:
             client.tester_logger.debug(f"Error while downloading media: {e}")
             filepath = None
         return filepath
+
+    @classmethod
+    async def _convert_video_to_webp(cls, filepath):
+        if filepath.lower().endswith('.webp'):
+            try:
+                with Image.open(filepath) as img:
+                    if img.format == 'WEBP' and not getattr(img, "is_animated", False):
+                        # The file is a static WebP image; skip processing
+                        return
+            except UnidentifiedImageError:
+                pass
+
+        clip = VideoFileClip(filepath)
+        if clip.duration > 5:
+            clip = clip.subclip(0, 5)
+        fps = 10
+        frames = []
+
+        for frame in clip.iter_frames(fps=fps, dtype='uint8'):
+            img = Image.fromarray(frame)
+            img.thumbnail((512, 512))
+            frames.append(img)
+
+        new_filepath = filepath.rsplit('.', 1)[0] + '.webp'
+        frames[0].save(
+            new_filepath,
+            format='WEBP',
+            save_all=True,
+            append_images=frames[1:],
+            duration=int(1000 / fps),
+            loop=0
+        )
 
     def __eq__(self, other):
         if not isinstance(other, type(self)):

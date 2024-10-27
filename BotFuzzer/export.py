@@ -99,9 +99,11 @@ class Cell:
                 encoded_image, width, height = self.image_to_base64(self.value)
                 self.value = f'<div><img height="{height}" width="{width}" src="data:image/jpeg;base64,{encoded_image}"><br></div>'
                 self.cell_height = height
-            elif file_extension in [".mp4", ".avi", ".mov"]:
-                self.value = f'<div><video controls><source src="{self.value}" type="video/{file_extension[1:]}"></video><br></div>'
-                self.cell_height = 200
+            elif file_extension in [".mp4", ".avi", ".mov", ".webp"]:
+                filepath = self.value.split('.')[0] + '.webp'
+                encoded_image, width, height = self.image_to_base64(filepath)
+                self.value = f'<div><img height="{height}" width="{width}" src="data:image/webp;base64,{encoded_image}"><br></div>'
+                self.cell_height = height
             else:
                 self.value = f'<div><a href="{self.value}" target="_blank">Open File</a><br></div>'
         elif isinstance(self.value, list):
@@ -290,21 +292,25 @@ class Exporter:
 
     def _layout_render_matrix(self, y_position):
         current_y_position = y_position
-        for path in self.render_paths:
+        for i, path in enumerate(self.render_paths):
             max_table_height = 0
-            for table in path:
-                table.table_x = (
-                        BASE_START_TABLE_X_AXIS
-                        + table.origin.depth * (BASE_TABLE_WIDTH + MARGIN)
-                )
-                table.table_y = current_y_position
-                current_row_y = 0
-                for row in table.rows:
-                    row.row_y = current_row_y
-                    current_row_y += row.row_height
-                if table.table_height > max_table_height:
-                    max_table_height = table.table_height
-            current_y_position += max_table_height + MARGIN
+            for n, table in enumerate(path):
+                # Skip duplicate tables
+                if i == 0 or (i != 0 and table != self.get_element_from_list_safely(self.render_paths[i - 1], n)):
+                    table.table_x = (
+                            BASE_START_TABLE_X_AXIS
+                            + table.origin.depth * (BASE_TABLE_WIDTH + MARGIN)
+                    )
+                    table.table_y = current_y_position
+                    current_row_y = 0
+                    for row in table.rows:
+                        row.row_y = current_row_y
+                        current_row_y += row.row_height
+                    if table.table_height > max_table_height:
+                        max_table_height = table.table_height
+            # Update the current_y_position only if a table was placed
+            if max_table_height > 0:
+                current_y_position += max_table_height + MARGIN
 
     def _fill_xml_with_tree(self, table):
         main_str = ""
@@ -377,10 +383,6 @@ class Exporter:
                                 cell.cell_width,
                                 cell.cell_height,
                             )
-                # # Add edge if it exists
-                # if table.edge:
-                #     main_str += BASE_EDGE.format(f'{table.edge.id}_{i}', f'{table.edge.source}_{i}', f'{table.edge.target}_{i}')
-
         return main_str
 
     def _save_xml_file(self, main_str, mode):
