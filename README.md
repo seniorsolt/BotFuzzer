@@ -160,6 +160,10 @@ However, I use Sublime Text because it handles large logs efficiently, and you c
 To use this feature, add `OPENAI_API_KEY` in the `.env` file as mentioned above. 
 You can also use a local model if its backend provides an OpenAI-compatible API. Simply set `OPENAI_BASE_URL` in the `.env` file.
 
+## Setting for visual representaion
+
+You can change some options in xml_constants.py to get diagram you like.
+
 ## Contributing
 
 Contributions are welcome in any form
