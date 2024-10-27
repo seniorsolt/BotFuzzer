@@ -61,6 +61,8 @@ if __name__ == "__main__":
  BotFuzzer is currently under development, and errors are possible. 
  It is recommended to use exception handling and export result in the final section to avoid losing data.
 
+ Resulted file .xml can be watched with https://www.drawio.com/ or drawio desktop app.
+
 > 💡 **NOTE**: To ensure the tool works correctly, the "/start" command must truly reset the bot's state to the initial state from any bot's state. Example: if there is a moment in the bot where the user is required to enter an email, a mask is set to check the format of the entered text, and other commands starting with a slash "/" have a lower priority, then /start will result in the bot continuing to require the email to be entered.
 
 ## Configuration Options
